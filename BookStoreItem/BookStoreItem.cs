@@ -1,19 +1,19 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.SymbolStore;
+using System.Globalization;
+using System.Text;
 
 namespace BookStoreItem
 {
     /// <summary>
     /// Represents the an item in a book store.
     /// </summary>
-    // TODO Declare a class.
     public class BookStoreItem
     {
-        // TODO Add fields.
         private readonly string authorName;
-        private readonly string isni;
+        private readonly string? isni;
         private readonly bool hasIsni;
         private decimal price;
-        private string currency;
+        private string currency = "USD";
         private int amount;
         /// <summary>
         /// Initializes a new instance of the <see cref="BookStoreItem"/> class with the specified <paramref name="authorName"/>, <paramref name="title"/>, <paramref name="publisher"/> and <paramref name="isbn"/>.
@@ -22,7 +22,32 @@ namespace BookStoreItem
         /// <param name="title">A book title.</param>
         /// <param name="publisher">A book publisher.</param>
         /// <param name="isbn">A book ISBN.</param>
-        // TODO Add a constructor.
+        public BookStoreItem(string authorName, string title, string publisher, string isbn)
+        {
+            if (authorName.Length == 0 || title.Length == 0 || publisher.Length == 0)
+            {
+                throw new ArgumentException("authorName or title or publisher is not valid");
+            }
+            else if (authorName.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0 || title.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0 || publisher.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0)
+            {
+                throw new ArgumentException("authorName or title or publisher is not valid");
+            }
+            else
+            {
+                this.authorName = authorName;
+                this.Title = title;
+                this.Publisher = publisher;
+            }
+
+            if (ValidateIsbn(isbn))
+            {
+                this.Isbn = isbn;
+            }
+            else
+            {
+                throw new ArgumentException("isbn is not valid");
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BookStoreItem"/> class with the specified <paramref name="authorName"/>, <paramref name="isni"/>, <paramref name="title"/>, <paramref name="publisher"/> and <paramref name="isbn"/>.
@@ -32,7 +57,19 @@ namespace BookStoreItem
         /// <param name="title">A book title.</param>
         /// <param name="publisher">A book publisher.</param>
         /// <param name="isbn">A book ISBN.</param>
-        // TODO Add a constructor.
+        public BookStoreItem(string authorName, string isni, string title, string publisher, string isbn)
+            : this(authorName, title, publisher, isbn)
+        {
+            if (ValidateIsni(isni))
+            {
+                this.isni = isni;
+                this.hasIsni = true;
+            }
+            else
+            {
+                throw new ArgumentException("isni is not valid");
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BookStoreItem"/> class with the specified <paramref name="authorName"/>, <paramref name="title"/>, <paramref name="publisher"/> and <paramref name="isbn"/>, <paramref name="published"/>, <paramref name="bookBinding"/>, <paramref name="price"/>, <paramref name="currency"/> and <paramref name="amount"/>.
@@ -46,7 +83,23 @@ namespace BookStoreItem
         /// <param name="price">An amount of money that a book costs.</param>
         /// <param name="currency">A price currency.</param>
         /// <param name="amount">An amount of books in the store's stock.</param>
-        // TODO Add a constructor.
+        public BookStoreItem(string authorName, string title, string publisher, string isbn, DateTime? published, string bookBinding, decimal price, string currency, int amount)
+            : this(authorName, title, publisher, isbn)
+        {
+            this.Published = published;
+            this.BookBinding = bookBinding;
+            this.price = price;
+            if (ThrowExceptionIfCurrencyIsNotValid(currency))
+            {
+                this.currency = currency;
+            }
+            else
+            {
+                throw new ArgumentException("Currency is not valid");
+            }
+
+            this.amount = amount;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BookStoreItem"/> class with the specified <paramref name="authorName"/>, <paramref name="isni"/>, <paramref name="title"/>, <paramref name="publisher"/> and <paramref name="isbn"/>, <paramref name="published"/>, <paramref name="bookBinding"/>, <paramref name="price"/>, <paramref name="currency"/> and <paramref name="amount"/>.
@@ -61,13 +114,18 @@ namespace BookStoreItem
         /// <param name="price">An amount of money that a book costs.</param>
         /// <param name="currency">A price currency.</param>
         /// <param name="amount">An amount of books in the store's stock.</param>
-        public BookStoreItem(string authorName, string isni, string title, string publisher, string isbn, DateTime? published, decimal price, int amount, string bookBinding = "", string currency = "USD")
+        public BookStoreItem(string authorName, string isni, string title, string publisher, string isbn, DateTime? published, string bookBinding, decimal price, string currency, int amount)
+            : this(authorName, title, publisher, isbn, published, bookBinding, price, currency, amount)
         {
-            this.authorName = authorName;
-            this.isni = isni;
-            this.Title = title;
-            this.Publisher = publisher;
-
+            if (ValidateIsni(isni))
+            {
+                this.isni = isni;
+                this.hasIsni = true;
+            }
+            else
+            {
+                throw new ArgumentException("isni is not valid");
+            }
         }
 
         /// <summary>
@@ -83,7 +141,7 @@ namespace BookStoreItem
         /// </summary>
         public string Isni
         {
-            get { return this.isni; }
+            get => this.isni;
         }
 
         /// <summary>
@@ -137,12 +195,12 @@ namespace BookStoreItem
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         /// <summary>
         /// Gets or sets an amount of money that a book costs.
         /// </summary>
-        private decimal Price
+        public decimal Price
         {
             get => this.price;
 
@@ -162,7 +220,7 @@ namespace BookStoreItem
         /// <summary>
         /// Gets or sets a price currency.
         /// </summary>
-        private string Currency
+        public string Currency
         {
             get => this.currency;
             set
@@ -200,22 +258,63 @@ namespace BookStoreItem
         }
 
         /// <summary>
+        /// Returns the string that represents a current object.
+        /// </summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
+        {
+            const string delimiter = ", ";
+            var res = new StringBuilder();
+            res.Append(this.Title).Append(delimiter).Append(this.authorName).Append(delimiter);
+
+            res.Append(this.isni ?? "ISNI IS NOT SET").Append(delimiter);
+
+            string priceValue = $"{this.Price:N2}";
+            if (priceValue.Contains(','))
+            {
+                res.Append("\"").Append(priceValue).Append(" ").Append(currency).Append("\"");
+            }
+            else
+            {
+                res.Append(priceValue).Append(" ").Append(currency);
+            }
+
+            res.Append(delimiter).Append(Amount);
+
+            return res.ToString();
+        }
+
+        /// <summary>
         /// Gets a <see cref="Uri"/> to the contributor's page at the isni.org website.
         /// </summary>
         /// <returns>A <see cref="Uri"/> to the contributor's page at the isni.org website.</returns>
-        // TODO Add an instance method.
+        public Uri GetIsniUri()
+        {
+            if (this.isni != null)
+            {
+                return new Uri($"https://isni.org/isni/{this.isni}");
+            }
+            else
+            {
+                throw new InvalidOperationException("isni url is null");
+            }
+        }
 
         /// <summary>
         /// Gets an <see cref="Uri"/> to the publication page on the isbnsearch.org website.
         /// </summary>
         /// <returns>an <see cref="Uri"/> to the publication page on the isbnsearch.org website.</returns>
-        // TODO Add an instance method.
-
-        /// <summary>
-        /// Returns the string that represents a current object.
-        /// </summary>
-        /// <returns>A string that represents the current object.</returns>
-        // TODO Add an instance method.
+        public Uri GetIsbnSearchUri()
+        {
+            if (this.Isbn != null)
+            {
+                return new Uri($"https://isbnsearch.org/isbn/{this.Isbn}");
+            }
+            else
+            {
+                throw new InvalidOperationException("isbn url is null");
+            }
+        }
 
         private static bool ThrowExceptionIfCurrencyIsNotValid(string value)
         {
@@ -238,10 +337,112 @@ namespace BookStoreItem
             }
         }
 
-        // TODO Add a static method.
+        private static bool ValidateIsni(string isni)
+        {
+            bool flag = true;
+            if (isni.Length != 16)
+            {
+                return false;
+            }
 
-        // TODO Add a static method.
+            foreach (char c in isni)
+            {
+                if (!(char.IsDigit(c) || c == 'X'))
+                {
+                    flag = false;
+                }
+            }
 
-        // TODO Add a static method.
+            if (flag)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static bool ValidateIsbn(string isbn)
+        {
+            bool flag = true;
+            if (isbn.Length != 10)
+            {
+                return false;
+            }
+
+            foreach (char c in isbn)
+            {
+                if (!(char.IsDigit(c) || c == 'X'))
+                {
+                    flag = false;
+                }
+            }
+
+            if (flag)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private static bool ValidateIsbnChecksum(string isbn)
+        {
+            int[] isbnNums = new int[10];
+            for (int i = 0; i < 10; i++)
+            {
+            switch (isbn[i])
+                {
+                    case '1':
+                        isbnNums[i] = 1;
+                        break;
+                    case '2':
+                        isbnNums[i] = 2;
+                        break;
+                    case '3':
+                        isbnNums[i] = 3;
+                        break;
+                    case '4':
+                        isbnNums[i] = 4;
+                        break;
+                    case '5':
+                        isbnNums[i] = 5;
+                        break;
+                    case '6':
+                        isbnNums[i] = 6;
+                        break;
+                    case '7':
+                        isbnNums[i] = 7;
+                        break;
+                    case '8':
+                        isbnNums[i] = 8;
+                        break;
+                    case '9':
+                        isbnNums[i] = 9;
+                        break;
+                    case 'X':
+                        isbnNums[i] = 10;
+                        break;
+                }
+            }
+
+            int checkSum = 0;
+            for (int i = 1; i <= 10; i++)
+            {
+                checkSum += (11 - i) * isbnNums[i - 1];
+            }
+
+            if (checkSum % 11 == 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
     }
 }
