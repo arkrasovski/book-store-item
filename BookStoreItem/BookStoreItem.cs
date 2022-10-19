@@ -24,13 +24,17 @@ namespace BookStoreItem
         /// <param name="isbn">A book ISBN.</param>
         public BookStoreItem(string authorName, string title, string publisher, string isbn)
         {
-            if (authorName.Length == 0 || title.Length == 0 || publisher.Length == 0)
+            if (authorName.Length == 0 || authorName.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0)
             {
-                throw new ArgumentException("authorName or title or publisher is not valid");
+                throw new ArgumentException("authorName or title or publisher is not valid", nameof(authorName));
             }
-            else if (authorName.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0 || title.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0 || publisher.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0)
+            else if (title.Length == 0 || title.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0)
             {
-                throw new ArgumentException("authorName or title or publisher is not valid");
+                throw new ArgumentException("authorName or title or publisher is not valid", nameof(title));
+            }
+            else if (publisher.Length == 0 || publisher.Replace(" ", string.Empty, StringComparison.Ordinal).Length == 0)
+            {
+                throw new ArgumentException("authorName or title or publisher is not valid", nameof(publisher));
             }
             else
             {
@@ -45,7 +49,7 @@ namespace BookStoreItem
             }
             else
             {
-                throw new ArgumentException("isbn is not valid");
+                throw new ArgumentException("isbn is not valid", nameof(isbn));
             }
         }
 
@@ -67,7 +71,7 @@ namespace BookStoreItem
             }
             else
             {
-                throw new ArgumentException("isni is not valid");
+                throw new ArgumentException("isni is not valid", nameof(isni));
             }
         }
 
@@ -89,14 +93,8 @@ namespace BookStoreItem
             this.Published = published;
             this.BookBinding = bookBinding;
             this.price = price;
-            if (ThrowExceptionIfCurrencyIsNotValid(currency))
-            {
-                this.currency = currency;
-            }
-            else
-            {
-                throw new ArgumentException("Currency is not valid");
-            }
+            ThrowExceptionIfCurrencyIsNotValid(currency);
+            this.currency = currency;
 
             this.amount = amount;
         }
@@ -124,7 +122,7 @@ namespace BookStoreItem
             }
             else
             {
-                throw new ArgumentException("isni is not valid");
+                throw new ArgumentException("isni is not valid", nameof(isni));
             }
         }
 
@@ -139,7 +137,7 @@ namespace BookStoreItem
         /// <summary>
         /// Gets an International Standard Name Identifier (ISNI) that uniquely identifies a book author.
         /// </summary>
-        public string Isni
+        public string? Isni
         {
             get => this.isni;
         }
@@ -225,14 +223,8 @@ namespace BookStoreItem
             get => this.currency;
             set
             {
-                if (ThrowExceptionIfCurrencyIsNotValid(value))
-                {
-                    this.currency = value;
-                }
-                else
-                {
-                    this.currency = string.Empty;
-                }
+                ThrowExceptionIfCurrencyIsNotValid(value);
+                this.currency = value;
 
                 //тут надо написать else и использовать функцию ThrowExceptionIfCurrencyIsNotValid
             }
@@ -316,10 +308,10 @@ namespace BookStoreItem
             }
         }
 
-        private static bool ThrowExceptionIfCurrencyIsNotValid(string value)
+        private static void ThrowExceptionIfCurrencyIsNotValid(string currency)
         {
             bool isCurrency = true;
-            foreach (char c in value)
+            foreach (char c in currency)
             {
                 if (!char.IsLetter(c))
                 {
@@ -327,13 +319,9 @@ namespace BookStoreItem
                 }
             }
 
-            if (isCurrency && value.Length == 3)
+            if (!(isCurrency && currency.Length == 3))
             {
-                return true;
-            }
-            else
-            {
-                throw new ArgumentException("Its not a currency");
+                throw new ArgumentException("Its not a currency", nameof(currency));
             }
         }
 
